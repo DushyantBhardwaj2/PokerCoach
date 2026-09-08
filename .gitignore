@@ -1,15 +1,71 @@
+# ==============================================================================
+# Environment Variables & Secrets (CRITICAL: Never commit secrets)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+
+# ==============================================================================
+# Python Virtual Environments & Bytecode
+# ==============================================================================
 .venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 
-# Data & Database storage
-data/
+# ==============================================================================
+# Node & Frontend (Vite, React, TypeScript)
+# ==============================================================================
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================================================================
+# Books & Large PDFs
+# (Modern Poker Theory is >104MB; GitHub blocks files over 100MB)
+# ==============================================================================
+Books/*.pdf
+!Books/README.md
+
+# ==============================================================================
+# Local Data & Database Storage
+# (ChromaDB vector embeddings, BM25 indices, local SQLite/PostgreSQL dumps)
+# ==============================================================================
+data/*
+!data/.gitkeep
+*.sqlite3
 *.pkl
+*.log
 
-# Environment variables
-.env
-
-# IDE settings
+# ==============================================================================
+# Operating System & IDE Files
+# ==============================================================================
 .vscode/
 .idea/
+.claude/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
