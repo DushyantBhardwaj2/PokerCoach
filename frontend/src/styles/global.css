@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+@theme {
+  --color-gold: #D4AF37;
+  --color-gold-light: #F4D03F;
+  --color-gold-dark: #B8960C;
+  --color-amber-warm: #FFA500;
+  --color-charcoal: #1A1A1A;
+  --color-charcoal-light: #2D2D2D;
+  --color-charcoal-dark: #0D0D0D;
+  --color-cream: #F5F5DC;
+  --color-cream-dark: #E8E8D0;
+
+  --font-display: "Playfair Display", serif;
+  --font-sans: "DM Sans", sans-serif;
+
+  --animate-fade-in: fadeIn 0.6s ease-out;
+  --animate-slide-up: slideUp 0.6s ease-out;
+  --animate-scale-in: scaleIn 0.4s ease-out;
+  --animate-pulse-gold: pulseGold 2s ease-in-out infinite;
+  --animate-card-deal: cardDeal 0.4s ease-out;
+  --animate-chip-throw: chipThrow 0.5s ease-out;
+  --animate-stagger: staggerIn 0.3s ease-out forwards;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulseGold {
+    0%, 100% { box-shadow: 0 0 15px rgba(212, 175, 55, 0.15); }
+    50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.25); }
+  }
+  @keyframes cardDeal {
+    0% { opacity: 0; transform: translateX(-100px) rotate(-20deg); }
+    60% { transform: translateX(10px) rotate(5deg); }
+    100% { opacity: 1; transform: translateX(0) rotate(0); }
+  }
+  @keyframes chipThrow {
+    0% { transform: scale(0) translateY(-50px); opacity: 0; }
+    50% { transform: scale(1.2) translateY(0); opacity: 1; }
+    75% { transform: scale(0.9); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-charcoal-dark);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+  }
+
+  /* Improve text contrast across the interface */
+  .text-cream { color: var(--color-cream); }
+  .text-cream\/90 { color: rgba(245, 245, 220, 0.9); }
+  .text-cream\/80 { color: rgba(245, 245, 220, 0.8); }
+  .text-cream\/70 { color: rgba(245, 245, 220, 0.7); }
+  .text-cream\/60 { color: rgba(245, 245, 220, 0.6); }
+  .text-cream\/50 { color: rgba(245, 245, 220, 0.5); }
+  .text-cream\/40 { color: rgba(245, 245, 220, 0.4); }
+  .text-cream\/30 { color: rgba(245, 245, 220, 0.3); }
+}
+
+@layer utilities {
+  .shadow-gold {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.12);
+  }
+
+  .shadow-gold-strong {
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.18);
+  }
+
+  .shadow-gold-subtle {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.08);
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, var(--color-gold-dark) 0%, var(--color-gold) 50%, var(--color-gold-light) 100%);
+  }
+
+  .gradient-charcoal {
+    background: linear-gradient(180deg, var(--color-charcoal-dark) 0%, var(--color-charcoal) 100%);
+  }
+
+  .glass-dark {
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(212, 175, 55, 0.12);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Enhance card contrast for readability */
+  .card-polish {
+    background: rgba(45, 45, 45, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Better panel visibility */
+  .panel-solid {
+    background: var(--color-charcoal-light);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
+  /* Subtle active-state transitions */
+  .transition-tactical {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-tactical-fast {
+    transition: all 0.15s ease-out;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-charcoal-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Button effects */
+.btn-tactical {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-tactical::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-tactical:hover::before {
+  left: 100%;
+}
+
+/* Input focus effects */
+.input-tactical:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+}
+
+/* Loading spinner */
+.spinner {
+  border: 3px solid rgba(212, 175, 55, 0.1);
+  border-top-color: var(--color-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Noise texture overlay */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.03;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 1024px) {
+  .sidebar-collapsed main {
+    margin-left: 5rem;
+  }
+}
+
