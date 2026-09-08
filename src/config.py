@@ -17,6 +17,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 CHROMA_DIR = DATA_DIR / "chroma_db"
 BM25_PATH = DATA_DIR / "bm25_index.pkl"
 MANIFEST_PATH = DATA_DIR / "ingestion_manifest.json"
+KNOWLEDGE_BASE_PATH = DATA_DIR / "poker_knowledge_base.json"
 
 
 class Settings(BaseModel):
@@ -27,6 +28,7 @@ class Settings(BaseModel):
     chroma_dir: Path = CHROMA_DIR
     bm25_path: Path = BM25_PATH
     manifest_path: Path = MANIFEST_PATH
+    knowledge_base_path: Path = KNOWLEDGE_BASE_PATH
 
     # Compatibility properties
     @property

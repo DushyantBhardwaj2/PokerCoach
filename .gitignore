@@ -53,6 +53,7 @@ Books/*.pdf
 # ==============================================================================
 data/*
 !data/.gitkeep
+!data/poker_knowledge_base.json
 *.sqlite3
 *.pkl
 *.log

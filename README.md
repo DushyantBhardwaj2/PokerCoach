@@ -167,7 +167,43 @@ Rather than relying on generic LLM memory, strategy is grounded in 7 canonical p
 
 ---
 
-### 5. Grounded Prompt Synthesis & Conflict Resolution
+### 5. Bundled Knowledge Base & Extensibility (Adding More Books)
+
+#### 📦 Zero-Setup Bundled Knowledge Base
+To allow anyone to clone, test, and evaluate the coaching pipeline without having to download or manage large commercial book scans, the repository comes pre-packaged with a clean, structured textual knowledge corpus:
+- **Location**: [`data/poker_knowledge_base.json`](data/poker_knowledge_base.json) (~4.5 MB).
+- **Scale**: **4,117 detailed, high-resolution paragraph chunks** (~500 pages of text) covering foundational strategy, game theory optimal (GTO) play, combinatorics, and situational heuristics across all 7 canonical poker titles:
+  - *The Theory of Poker* (David Sklansky) — 536 chunks
+  - *Harrington on Hold 'em* (Dan Harrington) — 572 chunks
+  - *Applications of No-Limit Hold'em* (Matthew Janda) — 858 chunks
+  - *The Mathematics of Poker* (Bill Chen & Jerrod Ankenman) — 1,019 chunks
+  - *Modern Poker Theory* (Michael Acevedo) — 1,011 chunks
+  - *Poker Math That Matters* (James Chesterton) — 63 chunks
+  - *10 Things Good Poker Players Don't Do* (Red Chip Poker) — 58 chunks
+
+When you clone the repository and run:
+```bash
+python -m src.ingest
+```
+The ingestion engine detects the bundled corpus, embeds the 4,117 chunks into ChromaDB, compiles the BM25 index, and prepares the live hybrid retriever in seconds—**no PDF files required**.
+
+#### ➕ Adding More Books Anytime
+The knowledge base is fully extensible:
+1. Drop any new poker strategy `.pdf` file into the `Books/` folder.
+2. Run the ingestion command:
+   ```bash
+   python -m src.ingest
+   ```
+3. The engine automatically:
+   - Computes an MD5 checksum to detect the new book.
+   - Extracts and sanitizes the text with PyMuPDF.
+   - Splits content into semantic paragraph chunks.
+   - Upserts embeddings into ChromaDB and recompiles the synchronized BM25 index.
+   - Updates `data/poker_knowledge_base.json` with the new literature so your knowledge base stays synchronized!
+
+---
+
+### 6. Grounded Prompt Synthesis & Conflict Resolution
 The coach prompt is assembled using a strict **4-section architecture** ([coach.py](file:///c:/Users/Dushy/OneDrive/Desktop/Projects/Poker%20Coach/backend/rag/coach.py)):
 
 | Section | Content Provided to LLM |
@@ -186,7 +222,7 @@ If no `GEMINI_API_KEY` is provided or if network latency spikes, the system imme
 
 ---
 
-### 6. Interactive Frontend & Live Tactical HUD
+### 7. Interactive Frontend & Live Tactical HUD
 Built with React 18, TypeScript, TailwindCSS, and Zustand ([frontend/](file:///c:/Users/Dushy/OneDrive/Desktop/Projects/Poker%20Coach/frontend)):
 - **Live Virtual Table**: Visual card display, dealer button indicator, active player spotlights, and bet chips.
 - **Tactical AI HUD**:
