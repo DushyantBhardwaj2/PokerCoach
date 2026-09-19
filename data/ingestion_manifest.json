@@ -1,0 +1,58 @@
+{
+  "Poker Poker Math Simple and Basic Poker Math To Help You Crush The Competition, Pile Up Money And Feel Like A Professional… (James Chesterton [Chesterton, James]).pdf": {
+    "md5": "25024e5a45ece987332aaaab739d461c",
+    "status": "completed",
+    "pages_extracted": 49,
+    "chunks_created": 63,
+    "ingested_at": "2026-09-06T18:25:37.754339",
+    "duration_seconds": 17.28
+  },
+  "Harrington_on_Hold_em_Expert_Strategy_fo.pdf": {
+    "md5": "6d96da75d1446e64274602fad6766ddb",
+    "status": "completed",
+    "pages_extracted": 176,
+    "chunks_created": 572,
+    "ingested_at": "2026-09-06T18:28:03.394237",
+    "duration_seconds": 145.61
+  },
+  "STOP 10 Things Good Poker Players Dont Do (Red Chip Poker, Ed Miller, James Sweeney etc.) (z-library.sk, 1lib.sk, z-lib.sk).pdf": {
+    "md5": "f3c8d5111571cb1096ad5a6449028e29",
+    "status": "completed",
+    "pages_extracted": 31,
+    "chunks_created": 58,
+    "ingested_at": "2026-09-06T18:28:21.113410",
+    "duration_seconds": 17.68
+  },
+  "The Theory of Poker A Professional Poker Player Teaches You How To Think Like One (David Sklansky) (z-library.sk, 1lib.sk, z-lib.sk).pdf": {
+    "md5": "54573eff7273cad4aeab8d8265875e19",
+    "status": "completed",
+    "pages_extracted": 301,
+    "chunks_created": 536,
+    "ingested_at": "2026-09-06T18:31:21.955883",
+    "duration_seconds": 180.75
+  },
+  "Applications of No-Limit Hold em (Matthew Janda) (z-library.sk, 1lib.sk, z-lib.sk).pdf": {
+    "md5": "aaf005007e8db6ec39415a381ec3edbe",
+    "status": "completed",
+    "pages_extracted": 491,
+    "chunks_created": 858,
+    "ingested_at": "2026-09-06T18:35:41.962734",
+    "duration_seconds": 259.93
+  },
+  "The Mathematics of Poker (Bill Chen, Jerrod Ankenman) (z-library.sk, 1lib.sk, z-lib.sk).pdf": {
+    "md5": "199f32e73598070099bf76782aa4f11d",
+    "status": "completed",
+    "pages_extracted": 386,
+    "chunks_created": 1019,
+    "ingested_at": "2026-09-06T18:41:52.942204",
+    "duration_seconds": 370.64
+  },
+  "Modern Poker Theory Building an unbeatable strategy based on GTO principles (Michael Acevedo) (z-library.sk, 1lib.sk, z-lib.sk).pdf": {
+    "md5": "a502032e3590619b3dc08bc3b9132de5",
+    "status": "completed",
+    "pages_extracted": 779,
+    "chunks_created": 1011,
+    "ingested_at": "2026-09-06T18:45:08.263661",
+    "duration_seconds": 194.99
+  }
+}

@@ -134,8 +134,8 @@ export interface FullAnalysisResponse {
 
 // Unified API URL Configuration
 const getBaseUrl = () => {
-  // 1. PUBLIC_API_URL is the primary source for both SSR and Client-side
-  const envUrl = (import.meta as any).env?.PUBLIC_API_URL;
+  // 1. VITE_API_URL or PUBLIC_API_URL from environment
+  const envUrl = (import.meta as any).env?.VITE_API_URL || (import.meta as any).env?.PUBLIC_API_URL;
   if (envUrl) {
     return envUrl.replace(/\/+$/, '');
   }

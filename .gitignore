@@ -42,20 +42,16 @@ pnpm-debug.log*
 
 # ==============================================================================
 # Books & Large PDFs
-# (Modern Poker Theory is >104MB; GitHub blocks files over 100MB)
+# (Modern Poker Theory is >104MB; tracked via Git LFS)
 # ==============================================================================
-Books/*.pdf
-!Books/README.md
 
 # ==============================================================================
 # Local Data & Database Storage
-# (ChromaDB vector embeddings, BM25 indices, local SQLite/PostgreSQL dumps)
+# Keep precomputed RAG indices for deployment, ignore runtime DBs & logs
 # ==============================================================================
-data/*
-!data/.gitkeep
-!data/poker_knowledge_base.json
-*.sqlite3
-*.pkl
+data/*.log
+data/*.db
+data/poker_coach.db
 *.log
 
 # ==============================================================================
