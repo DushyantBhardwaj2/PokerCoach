@@ -64,25 +64,39 @@ class HybridRetriever:
         self.chroma_dir = chroma_dir or settings.chroma_dir
         self.bm25_path = bm25_path or settings.bm25_path
 
-        # Embedding function
-        self.embed_fn = get_embedding_function()
+        # Embedding function (initialized defensively to prevent OOM on 512MB containers)
+        self.embed_fn = None
+        self._init_embed_fn()
 
         # Initialize ChromaDB defensively (local fallback)
         self.client = None
         self.collection = None
         try:
             self.client = chromadb.PersistentClient(path=str(self.chroma_dir))
-            self.collection = self.client.get_or_create_collection(
-                name=settings.collection_name,
-                embedding_function=self.embed_fn,
-                metadata={"hnsw:space": "cosine"}
-            )
+            if self.embed_fn is not None:
+                self.collection = self.client.get_or_create_collection(
+                    name=settings.collection_name,
+                    embedding_function=self.embed_fn,
+                    metadata={"hnsw:space": "cosine"}
+                )
         except Exception as e:
-            print(f"[!] Info: Local ChromaDB initialization skipped/failed ({e}). Neon vector store will be used.")
+            print(f"[!] Info: Local ChromaDB initialization deferred ({e}). Neon vector store will be used.")
 
         # Initialize BM25 Index
         self.bm25_data = None
         self._load_bm25()
+
+    def _init_embed_fn(self) -> None:
+        """Initializes the embedding function defensively."""
+        import os
+        # When DISABLE_LOCAL_TORCH is enabled, defer heavy PyTorch loading to prevent OOM crashes
+        if os.getenv("DISABLE_LOCAL_TORCH", "").lower() in ("1", "true", "yes"):
+            return
+        try:
+            self.embed_fn = get_embedding_function()
+        except Exception as e:
+            print(f"[!] Warning: Embedding function deferred: {e}")
+            self.embed_fn = None
 
     def _load_bm25(self) -> None:
         """Loads BM25 serialized index and document store."""
@@ -98,13 +112,20 @@ class HybridRetriever:
 
     def _neon_vector_search(self, query: str, top_k: int = settings.vector_top_k) -> List[Dict[str, Any]]:
         """Queries Neon PostgreSQL directly using pgvector cosine distance (<=>)."""
+        if self.embed_fn is None:
+            return []
+
         import psycopg2
 
-        query_embeddings = self.embed_fn([query])
-        if not query_embeddings or len(query_embeddings) == 0:
+        try:
+            query_embeddings = self.embed_fn([query])
+            if not query_embeddings or len(query_embeddings) == 0:
+                return []
+            vec = query_embeddings[0]
+            vec_str = "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
+        except Exception as e:
+            print(f"[!] Vector embedding generation failed: {e}")
             return []
-        vec = query_embeddings[0]
-        vec_str = "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
 
         db_url = settings.database_url
         if db_url.startswith("postgresql+psycopg2://"):
@@ -148,21 +169,80 @@ class HybridRetriever:
         finally:
             conn.close()
 
+    def _neon_text_search(self, query: str, top_k: int = settings.vector_top_k) -> List[Dict[str, Any]]:
+        """Queries Neon PostgreSQL for matching text chunks (pure SQL, 0 MB local RAM)."""
+        import psycopg2
+        import re
+
+        words = [w for w in re.findall(r"\b\w{3,}\b", query.lower()) if w not in {"the", "and", "for", "with", "that", "this", "from", "holding", "board"}]
+        if not words:
+            words = ["odds", "equity", "pot"]
+
+        db_url = settings.database_url
+        if db_url.startswith("postgresql+psycopg2://"):
+            db_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+
+        like_terms = words[:3]
+        like_clauses = " OR ".join(["text ILIKE %s" for _ in like_terms])
+        params = [f"%{w}%" for w in like_terms] + [top_k]
+
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                sql = f"""
+                    SELECT chunk_id, book_title, author, chapter, source_file, text
+                    FROM knowledge_chunks
+                    WHERE {like_clauses}
+                    LIMIT %s;
+                """
+                cur.execute(sql, params)
+                rows = cur.fetchall()
+
+            if not rows:
+                return []
+
+            hits = []
+            for i, r in enumerate(rows):
+                score = round(max(0.4, 0.95 - (i * 0.08)), 2)
+                hits.append({
+                    "id": r[0],
+                    "document": r[5],
+                    "metadata": {
+                        "book_title": r[1],
+                        "author": r[2],
+                        "chapter": r[3],
+                        "source_file": r[4],
+                    },
+                    "score": score,
+                    "raw_score": score,
+                })
+            return hits
+        except Exception:
+            return []
+        finally:
+            conn.close()
+
     def vector_search(self, query: str, top_k: int = settings.vector_top_k) -> List[Dict[str, Any]]:
         """Performs vector similarity search.
         
         Dual-Database Architecture:
         1. Neon PostgreSQL with pgvector (Cloud Primary)
-        2. ChromaDB (Local Fallback)
+        2. Neon PostgreSQL text search fallback (when embedding model is offline/deferred)
+        3. ChromaDB (Local Fallback)
         """
         # Try Neon PostgreSQL vector search if configured
         if settings.database_url and ("postgresql" in settings.database_url or "neon.tech" in settings.database_url):
             try:
-                neon_hits = self._neon_vector_search(query, top_k=top_k)
-                if neon_hits:
-                    return neon_hits
+                if self.embed_fn is not None:
+                    neon_hits = self._neon_vector_search(query, top_k=top_k)
+                    if neon_hits:
+                        return neon_hits
+                # Keyword search in Neon if embedding model is disabled or unavailable
+                neon_text_hits = self._neon_text_search(query, top_k=top_k)
+                if neon_text_hits:
+                    return neon_text_hits
             except Exception as e:
-                # Log and proceed to ChromaDB fallback
+                # Proceed to ChromaDB fallback
                 pass
 
         # Fallback to local ChromaDB

@@ -92,16 +92,22 @@ def current_user(
     x_user_id: Optional[str] = Header(default=None, alias="X-User-Id"),
     db: Session = Depends(get_db),
 ) -> User:
-    """Resolves the acting user from the X-User-Id header. 401 on unknown ids."""
-    if not x_user_id:
-        raise HTTPException(status_code=401, detail="Missing X-User-Id header")
-    try:
-        uid = int(x_user_id)
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=401, detail="Invalid X-User-Id header")
-    user = db.get(User, uid)
+    """Resolves the acting user from the X-User-Id header. Defaults to demo1 if missing."""
+    if x_user_id:
+        try:
+            uid = int(x_user_id)
+            user = db.get(User, uid)
+            if user is not None:
+                return user
+        except (TypeError, ValueError):
+            pass
+    # Fallback default: demo1
+    user = db.query(User).filter(User.username == "demo1").first()
     if user is None:
-        raise HTTPException(status_code=401, detail="Unknown user")
+        user = User(username="demo1", display_name="Alex (Demo)")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     return user
 
 

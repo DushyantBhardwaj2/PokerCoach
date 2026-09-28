@@ -209,29 +209,39 @@ def call_gemini(prompt: str) -> Optional[str]:
     api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
     if not api_key:
         return None
-    model = settings.gemini_model or "gemini-3.6-flash"
 
-    try:
-        import urllib.request
+    import urllib.request
+    import time
+
+    models_to_try = [settings.gemini_model or "gemini-3.6-flash", "gemini-2.5-flash"]
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+        },
+    }
+
+    for model in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.3,
-            },
-        }
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            text = data["candidates"][0]["content"]["parts"][0]["text"]
-            return " ".join(text.split()).strip() if text else None
-    except Exception as e:
-        print(f"[!] Gemini API call failed or timed out: {e}")
-        return None
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    return " ".join(text.split()).strip() if text else None
+            except Exception as e:
+                if attempt == 0:
+                    time.sleep(0.4)
+                    continue
+                # Try next model in list
+                break
+
+    return None
 
 
 def get_coach_advice(
