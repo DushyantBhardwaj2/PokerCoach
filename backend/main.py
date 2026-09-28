@@ -119,16 +119,24 @@ def to_book_knowledge(res: SearchResult) -> RetrievedBookKnowledge:
     )
 
 
-# --- Health Endpoints ---
+# --- Health & Root Endpoints ---
+
+@app.get("/")
+@app.head("/")
+def root():
+    return {"status": "online", "service": "Poker Coach RAG API", "version": "2.0.0"}
+
 
 @app.get("/health")
 @app.get("/api/health")
 def health_check():
-    """Returns system status and knowledge base statistics."""
+    """Returns system status and knowledge base statistics without loading heavy ML models."""
     try:
-        ret = get_retriever()
-        count = ret.collection.count()
-        has_bm25 = ret.bm25_data is not None
+        import chromadb
+        client = chromadb.PersistentClient(path=str(settings.chroma_dir))
+        coll = client.get_collection(name=settings.collection_name)
+        count = coll.count()
+        has_bm25 = settings.bm25_path.exists()
     except Exception:
         count = 0
         has_bm25 = False
@@ -143,6 +151,7 @@ def health_check():
             "bm25": settings.bm25_weight,
         },
     }
+
 
 
 @app.get("/api/v1/version")
