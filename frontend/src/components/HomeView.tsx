@@ -32,11 +32,8 @@ const FloatingParticle = ({ delay, size, left, top, duration }: { delay: number;
   />
 );
 
-// Hand-picked scatter rather than Math.random(). The page is server-rendered
-// (astro.config.mjs sets output: 'server'), so random values gave the server one
-// set of positions and the client another, and React logged a hydration mismatch
-// on every home page load. It also warns that the mismatch "won't be patched up",
-// meaning the DOM keeps the server's numbers while React believes the client's.
+// Hand-picked deterministic particle scatter coordinates rather than Math.random()
+// to guarantee stable, consistent rendering across mounts and reloads.
 const PARTICLES = [
   { id: 0, delay: 0.0, size: 10.5, left: '14%', top: '23%', duration: 5.4 },
   { id: 1, delay: 0.5, size: 5.5, left: '47%', top: '77%', duration: 4.3 },

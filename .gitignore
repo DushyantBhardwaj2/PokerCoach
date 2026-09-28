@@ -42,8 +42,11 @@ pnpm-debug.log*
 
 # ==============================================================================
 # Books & Large PDFs
-# (Modern Poker Theory is >104MB; tracked via Git LFS)
+# Keep raw PDFs local only; pre-extracted corpus and ChromaDB indices are in data/
 # ==============================================================================
+Books/*.pdf
+Books/**/*.pdf
+
 
 # ==============================================================================
 # Local Data & Database Storage
