@@ -84,3 +84,22 @@ class HandRecordRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="hands")
+
+
+class KnowledgeChunkRow(Base):
+    """Knowledge chunk table storing canonical poker literature and vector embeddings.
+    
+    Part of the dual database architecture in Neon PostgreSQL:
+    1. Operational relational store: User, OpponentProfileRow, HandRecordRow
+    2. AI Knowledge vector store: KnowledgeChunkRow (pgvector 768-d embeddings)
+    """
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    chunk_id: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    book_title: Mapped[str] = mapped_column(String(512), nullable=False)
+    author: Mapped[str] = mapped_column(String(512), nullable=False)
+    chapter: Mapped[str] = mapped_column(String(512), nullable=False)
+    source_file: Mapped[str] = mapped_column(String(512), default="")
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

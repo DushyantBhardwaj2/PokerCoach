@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: DATABASE_URL
-        value: sqlite:///./data/poker_coach.db
+        value: postgresql+psycopg2://neondb_owner:npg_V7CIFJgmN1GQ@ep-fragrant-lake-aep3wcv4-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: EMBEDDING_PROVIDER
         value: local
       - key: LOCAL_EMBEDDING_MODEL

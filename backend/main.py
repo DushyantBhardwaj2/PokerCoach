@@ -129,20 +129,40 @@ def root():
 
 @app.get("/health")
 @app.get("/api/health")
-def health_check():
-    """Returns system status and knowledge base statistics without loading heavy ML models."""
+def health_check(db: Session = Depends(get_db)):
+    """Returns system status and dual-database knowledge base statistics without loading heavy ML models."""
+    neon_chunks = 0
+    neon_connected = False
+    try:
+        from backend.db.models import KnowledgeChunkRow
+        neon_chunks = db.query(KnowledgeChunkRow).count()
+        neon_connected = True
+    except Exception:
+        neon_connected = False
+
+    chroma_count = 0
     try:
         import chromadb
         client = chromadb.PersistentClient(path=str(settings.chroma_dir))
         coll = client.get_collection(name=settings.collection_name)
-        count = coll.count()
-        has_bm25 = settings.bm25_path.exists()
+        chroma_count = coll.count()
     except Exception:
-        count = 0
-        has_bm25 = False
+        chroma_count = 0
+
+    has_bm25 = settings.bm25_path.exists()
+
     return {
         "status": "online",
-        "chromadb_chunks": count,
+        "dual_database": {
+            "architecture": "Unified Dual Database in Neon PostgreSQL",
+            "relational_store": "PostgreSQL (users, opponents, hands)",
+            "vector_store": "PostgreSQL pgvector (knowledge_chunks)",
+            "neon_connected": neon_connected,
+            "neon_knowledge_chunks": neon_chunks,
+            "local_chromadb_chunks": chroma_count,
+        },
+        "neon_knowledge_chunks": neon_chunks,
+        "chromadb_chunks": chroma_count,
         "bm25_indexed": has_bm25,
         "embedding_provider": settings.embedding_provider,
         "gemini_configured": bool(settings.gemini_api_key),
@@ -619,6 +639,7 @@ class RetrieveDirectRequest(BaseModel):
 
 
 @app.post("/api/retrieve", response_model=List[RetrievedBookKnowledge])
+@app.post("/api/v1/ai/knowledge", response_model=List[RetrievedBookKnowledge])
 def retrieve_direct(req: RetrieveDirectRequest):
     results = get_retriever().search(query=req.query, top_k=req.top_k)
     return [to_book_knowledge(r) for r in results]

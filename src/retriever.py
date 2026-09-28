@@ -64,14 +64,21 @@ class HybridRetriever:
         self.chroma_dir = chroma_dir or settings.chroma_dir
         self.bm25_path = bm25_path or settings.bm25_path
 
-        # Initialize ChromaDB
-        self.client = chromadb.PersistentClient(path=str(self.chroma_dir))
+        # Embedding function
         self.embed_fn = get_embedding_function()
-        self.collection = self.client.get_or_create_collection(
-            name=settings.collection_name,
-            embedding_function=self.embed_fn,
-            metadata={"hnsw:space": "cosine"}
-        )
+
+        # Initialize ChromaDB defensively (local fallback)
+        self.client = None
+        self.collection = None
+        try:
+            self.client = chromadb.PersistentClient(path=str(self.chroma_dir))
+            self.collection = self.client.get_or_create_collection(
+                name=settings.collection_name,
+                embedding_function=self.embed_fn,
+                metadata={"hnsw:space": "cosine"}
+            )
+        except Exception as e:
+            print(f"[!] Info: Local ChromaDB initialization skipped/failed ({e}). Neon vector store will be used.")
 
         # Initialize BM25 Index
         self.bm25_data = None
@@ -89,9 +96,77 @@ class HybridRetriever:
         else:
             self.bm25_data = None
 
+    def _neon_vector_search(self, query: str, top_k: int = settings.vector_top_k) -> List[Dict[str, Any]]:
+        """Queries Neon PostgreSQL directly using pgvector cosine distance (<=>)."""
+        import psycopg2
+
+        query_embeddings = self.embed_fn([query])
+        if not query_embeddings or len(query_embeddings) == 0:
+            return []
+        vec = query_embeddings[0]
+        vec_str = "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
+
+        db_url = settings.database_url
+        if db_url.startswith("postgresql+psycopg2://"):
+            db_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+
+        conn = psycopg2.connect(db_url, connect_timeout=5)
+        try:
+            with conn.cursor() as cur:
+                sql = """
+                    SELECT chunk_id, book_title, author, chapter, source_file, text,
+                           1.0 - (embedding <=> %s::vector) AS similarity
+                    FROM knowledge_chunks
+                    WHERE embedding IS NOT NULL
+                    ORDER BY embedding <=> %s::vector ASC
+                    LIMIT %s;
+                """
+                cur.execute(sql, (vec_str, vec_str, top_k))
+                rows = cur.fetchall()
+
+            if not rows:
+                return []
+
+            raw_sims = [max(0.0, min(1.0, float(r[6]))) for r in rows]
+            norm_sims = _minmax_normalize(raw_sims)
+
+            hits = []
+            for r, norm, raw in zip(rows, norm_sims, raw_sims):
+                hits.append({
+                    "id": r[0],
+                    "document": r[5],
+                    "metadata": {
+                        "book_title": r[1],
+                        "author": r[2],
+                        "chapter": r[3],
+                        "source_file": r[4],
+                    },
+                    "score": float(norm),
+                    "raw_score": float(raw),
+                })
+            return hits
+        finally:
+            conn.close()
+
     def vector_search(self, query: str, top_k: int = settings.vector_top_k) -> List[Dict[str, Any]]:
-        """Performs vector similarity search on ChromaDB with normalized scores."""
-        if self.collection.count() == 0:
+        """Performs vector similarity search.
+        
+        Dual-Database Architecture:
+        1. Neon PostgreSQL with pgvector (Cloud Primary)
+        2. ChromaDB (Local Fallback)
+        """
+        # Try Neon PostgreSQL vector search if configured
+        if settings.database_url and ("postgresql" in settings.database_url or "neon.tech" in settings.database_url):
+            try:
+                neon_hits = self._neon_vector_search(query, top_k=top_k)
+                if neon_hits:
+                    return neon_hits
+            except Exception as e:
+                # Log and proceed to ChromaDB fallback
+                pass
+
+        # Fallback to local ChromaDB
+        if self.collection is None or self.collection.count() == 0:
             return []
 
         results = self.collection.query(
