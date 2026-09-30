@@ -14,12 +14,14 @@ shared with the CLI pipeline. This module is purely the API layer.
 import sys
 import time
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-from fastapi import Depends, Header
 from sqlalchemy.orm import Session
+
+from backend.services.keep_alive import keep_alive_service
+from backend.db.visitor_repo import VisitorRepo
+
 
 from src.config import settings, DEMO_USERS
 from src.retriever import HybridRetriever, SearchResult
@@ -81,9 +83,17 @@ def get_retriever() -> HybridRetriever:
 
 @app.on_event("startup")
 def on_startup():
-    """Creates the schema and seeds the three demo users (idempotent)."""
+    """Creates the schema, seeds the three demo users (idempotent), and starts keep-alive worker."""
     init_db()
     seed_demo_data()
+    keep_alive_service.start()
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    """Gracefully terminates background keep-alive ping loop."""
+    keep_alive_service.stop()
+
 
 
 # --- Auth: 3 preset demo logins, X-User-Id header scoping (no JWT) ---
@@ -572,6 +582,105 @@ def get_session_analytics_endpoint(session_id: str, user: User = Depends(current
 def reset_session_endpoint(user: User = Depends(current_user), db: Session = Depends(get_db)):
     StatsRepo(db).reset(user.id)
     return {"status": "success"}
+
+
+# --- Keep-Alive & Anti-Cold-Start Endpoints ---
+
+@app.get("/api/v1/keep-alive/status")
+def keep_alive_status_endpoint():
+    """Returns real-time health and telemetry for the background keep-alive service."""
+    return keep_alive_service.get_status()
+
+
+@app.post("/api/v1/keep-alive/ping")
+async def keep_alive_ping_now_endpoint():
+    """Triggers an immediate keep-alive self-ping to guarantee the backend stays awake."""
+    result = await keep_alive_service.ping_now()
+    return result
+
+
+# --- Visitor Intelligence & IP Tracking Endpoints ---
+
+def extract_client_ip(request: Request) -> str:
+    """Extracts client IP behind reverse proxies (Render, Vercel, Cloudflare, AWS)."""
+    # 1. Standard X-Forwarded-For header (first entry is original client)
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            return parts[0]
+
+    # 2. Platform proxy headers
+    for h in ["x-real-ip", "cf-connecting-ip", "x-render-client-ip"]:
+        val = request.headers.get(h)
+        if val and val.strip():
+            return val.strip()
+
+    # 3. Direct client connection
+    if request.client and request.client.host:
+        return request.client.host
+
+    return "127.0.0.1"
+
+
+class TrackVisitRequest(BaseModel):
+    path: str = "/"
+    referrer: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+@app.post("/api/v1/analytics/track")
+def track_visit_endpoint(
+    req: TrackVisitRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Logs incoming visits and IP addresses to track visitors from LinkedIn and beyond."""
+    user_agent = request.headers.get("user-agent", "")
+    
+    # Exclude internal keep-alive bot pings from visitor counts
+    if "PokerSense-KeepAlive-Bot" in user_agent:
+        return {"status": "ignored", "reason": "keep_alive_bot"}
+
+    ip = extract_client_ip(request)
+    country = request.headers.get("x-vercel-ip-country") or request.headers.get("cf-ipcountry")
+    city = request.headers.get("x-vercel-ip-city")
+
+    try:
+        repo = VisitorRepo(db)
+        record = repo.record_visit(
+            ip_address=ip,
+            path=req.path or "/",
+            referrer=req.referrer,
+            session_id=req.session_id,
+            user_agent=user_agent,
+            country=country,
+            city=city,
+        )
+        return {
+            "status": "success",
+            "is_new_visitor": record.is_new_visitor,
+            "ip_address": record.ip_address,
+            "referrer": record.referrer,
+            "created_at": record.created_at.isoformat() if record.created_at else None,
+        }
+    except Exception as e:
+        # Never break frontend navigation if tracking encounters an error
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/v1/analytics/visitor-insights")
+def get_visitor_insights_endpoint(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """Returns aggregated visitor analytics, unique IPs, and the recent visitor activity log."""
+    try:
+        repo = VisitorRepo(db)
+        return repo.get_insights(limit_recent=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch visitor insights: {str(e)}")
+
 
 
 # --- RAG Specific Endpoints (conv.md) ---

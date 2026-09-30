@@ -103,3 +103,28 @@ class KnowledgeChunkRow(Base):
     source_file: Mapped[str] = mapped_column(String(512), default="")
     text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class VisitorLog(Base):
+    """Stores incoming platform visits and IP addresses for platform insights.
+
+    Captures unique IP addresses, referrer sources (e.g. LinkedIn, direct),
+    visited routes, geolocation headers, user agents, and device breakdowns.
+    """
+    __tablename__ = "visitor_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ip_address: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    session_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    path: Mapped[str] = mapped_column(String(256), default="/", index=True)
+    referrer: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    city: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    device_type: Mapped[str | None] = mapped_column(String(32), default="desktop")
+    browser: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    os: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_new_visitor: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+

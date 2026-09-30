@@ -465,3 +465,107 @@ export async function recordHandResult(request: {
   return handleResponse(res);
 }
 
+// --- Platform Intelligence, Visitor Tracking & Keep-Alive API ---
+
+export interface VisitorLogEntry {
+  id: number;
+  ip_address: string;
+  path: string;
+  referrer: string;
+  country: string | null;
+  city: string | null;
+  device_type: string;
+  browser: string;
+  os: string;
+  is_new_visitor: boolean;
+  created_at: string | null;
+  timestamp_iso: string | null;
+}
+
+export interface VisitorInsights {
+  total_visits: number;
+  unique_visitors: number;
+  visits_today: number;
+  new_visitors_today: number;
+  top_referrers: { source: string; count: number }[];
+  top_pages: { path: string; count: number }[];
+  devices: Record<string, number>;
+  browsers: { name: string; count: number }[];
+  recent_visits: VisitorLogEntry[];
+}
+
+export interface KeepAliveStatus {
+  active: boolean;
+  target_url: string;
+  interval_seconds: number;
+  interval_minutes: number;
+  started_at: string | null;
+  total_pings: number;
+  successful_pings: number;
+  failed_pings: number;
+  last_ping_time: string | null;
+  last_status_code: number | null;
+  last_latency_ms: number | null;
+  last_error: string | null;
+}
+
+const VISITOR_SESSION_KEY = 'poker_visitor_session_id';
+
+function getOrCreateVisitorSessionId(): string {
+  if (typeof window === 'undefined') return 'ssr_session';
+  let sid = sessionStorage.getItem(VISITOR_SESSION_KEY);
+  if (!sid) {
+    sid = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    sessionStorage.setItem(VISITOR_SESSION_KEY, sid);
+  }
+  return sid;
+}
+
+export async function trackVisit(path: string, referrer?: string): Promise<{ status: string; is_new_visitor?: boolean } | null> {
+  try {
+    const sessionId = getOrCreateVisitorSessionId();
+    const effectiveReferrer = referrer || (typeof document !== 'undefined' ? document.referrer : '');
+    
+    const res = await fetch(`${API_URL}/analytics/track`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        path: path || '/',
+        referrer: effectiveReferrer || 'Direct',
+        session_id: sessionId,
+      }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    // Fail silently so tracking never interferes with navigation
+    console.debug('Visitor tracking ping skipped or failed:', err);
+    return null;
+  }
+}
+
+export async function getVisitorInsights(limit = 50): Promise<VisitorInsights> {
+  const res = await fetch(`${API_URL}/analytics/visitor-insights?limit=${limit}`, {
+    method: 'GET',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function getKeepAliveStatus(): Promise<KeepAliveStatus> {
+  const res = await fetch(`${API_URL}/keep-alive/status`, {
+    method: 'GET',
+  });
+  return handleResponse(res);
+}
+
+export async function triggerKeepAlivePing(): Promise<any> {
+  const res = await fetch(`${API_URL}/keep-alive/ping`, {
+    method: 'POST',
+    headers: await getHeaders(),
+  });
+  return handleResponse(res);
+}
+

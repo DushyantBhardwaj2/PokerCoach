@@ -8,7 +8,7 @@ import { LearnView } from './components/LearnView';
 import { GuideView } from './components/GuideView';
 import { TheoryPage } from './components/theory/TheoryPage';
 import { LoginView } from './components/LoginView';
-import { getStoredUserId, getStoredDisplayName, logout } from './lib/api';
+import { getStoredUserId, getStoredDisplayName, logout, trackVisit } from './lib/api';
 import {
   Play,
   Home,
@@ -65,6 +65,12 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Real-time visitor and IP tracking for platform insights (e.g. LinkedIn traffic)
+  useEffect(() => {
+    trackVisit(currentPath, typeof document !== 'undefined' ? document.referrer : undefined);
+  }, [currentPath]);
+
 
   const navigateTo = (path: string) => {
     setCurrentPath(resolveRoute(path));
